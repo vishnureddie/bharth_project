@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Student Group Project Management Portal</title>
+<style>
+  :root{
+    --primary:#2563eb;
+    --danger:#ef4444;
+    --muted:#6b7280;
+    --card:#f8fafc;
+    --bg:#ffffff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Inter,system-ui,Segoe UI,Roboto,Arial;
+    background:var(--bg);
+    color:#0f172a;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    padding:20px;
+  }
+
+  .wrap{width:100%;max-width:980px}
+  .card{
+    background:var(--card);
+    border:1px solid #e6edf6;
+    border-radius:12px;
+    padding:20px;
+    box-shadow:0 6px 20px rgba(15,23,42,0.06);
+  }
+
+  /* Login */
+  #loginScreen{max-width:420px;margin:auto}
+  h1,h2,h3{margin:0 0 12px 0}
+  label{font-size:13px;color:var(--muted);display:block;margin-top:8px}
+  input,select,button,textarea{
+    width:100%;
+    padding:10px 12px;
+    margin-top:8px;
+    border-radius:8px;
+    border:1px solid #d1d5db;
+    font-size:14px;
+  }
+  select{appearance:none;cursor:pointer;background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"><path fill="%232563eb" d="M3 5l4 4 4-4z"/></svg>') no-repeat right 10px center / 14px 14px, #fff}
+  .row{display:flex;gap:10px;align-items:center}
+  .inline{display:inline-block}
+  .btn{background:var(--primary);color:white;border:none;cursor:pointer}
+  .btn.danger{background:var(--danger)}
+  .btn.ghost{background:transparent;color:var(--primary);border:1px solid #dbeafe}
+  .muted{color:var(--muted);font-size:13px}
+  .small{font-size:13px;color:var(--muted)}
+  .layout{display:grid;grid-template-columns:320px 1fr;gap:18px;margin-top:18px}
+  .list{padding-left:18px;margin:8px 0}
+
+  /* app header */
+  header.appHeader{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#0f172a;color:white;border-radius:8px}
+  header.appHeader .who{font-weight:600}
+
+  /* content columns */
+  .panel{background:white;border-radius:10px;padding:12px;border:1px solid #e6edf6}
+  .panel + .panel{margin-top:12px}
+
+  select.small-select{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #e6edf6}
+
+  ul.simple{list-style:none;padding:0;margin:0}
+  ul.simple li{padding:8px 6px;border-bottom:1px dashed #eef2f7;font-size:14px}
+  ul.simple li:last-child{border-bottom:none}
+  a.link{color:var(--primary);text-decoration:none}
+  a.link:hover{text-decoration:underline}
+
+  .flex{display:flex;gap:8px;align-items:center}
+  .spacer{flex:1}
+
+  footer.small{margin-top:14px;text-align:center;color:var(--muted);font-size:13px}
+  @media(max-width:900px){
+    .layout{grid-template-columns:1fr; padding-bottom:30px}
+    header.appHeader{flex-direction:column;gap:8px;align-items:flex-start}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- LOGIN -->
+  <div id="loginScreen" class="card">
+    <h1>Project Portal — Login</h1>
+    <p class="small">Enter your name/ID, select role and create/enter password. Admin ID is <strong>2400030672</strong>.</p>
+
+    <label for="username">Name / ID</label>
+    <input id="username" placeholder="e.g., john.doe or 2400030672" />
+
+    <label for="role">Select Role</label>
+    <select id="role">
+      <option value="">-- Select Role --</option>
+      <option value="student">Student</option>
+      <option value="teacher">Teacher</option>
+    </select>
+
+    <label for="password">Password</label>
+    <input id="password" type="password" placeholder="Create or enter password" />
+
+    <div style="margin-top:12px" class="row">
+      <button id="loginBtn" class="btn">Login / Register</button>
+      <button id="clearBtn" class="btn ghost">Clear storage</button>
+    </div>
+
+    <p class="small" style="margin-top:12px">Notes:
+      <ul class="simple" style="margin-top:6px">
+        <li><strong>Admin</strong> (2400030672) can approve teacher requests.</li>
+        <li>Teacher accounts require admin approval (requests are saved).</li>
+        <li>Students can submit any link (no validation).</li>
+      </ul>
+    </p>
+  </div>
+
+  <!-- APP -->
+  <div id="app" style="display:none">
+    <header class="appHeader">
+      <div>
+        <div class="who" id="whoDisplay">Welcome</div>
+        <div class="small muted" id="roleDisplay">Role</div>
+      </div>
+      <div class="flex">
+        <button id="logoutBtn" class="btn ghost">Logout</button>
+      </div>
+    </header>
+
+    <div class="layout" style="margin-top:14px">
+      <!-- LEFT: controls -->
+      <div>
+        <div class="panel card" id="leftPanel">
+          <!-- content injected -->
+        </div>
+        <div class="panel card" id="leftPanel2" style="margin-top:12px">
+          <!-- extra -->
+        </div>
+      </div>
+
+      <!-- RIGHT: main -->
+      <div>
+        <div class="panel card" id="mainPanel">
+          <!-- content injected -->
+        </div>
+      </div>
+    </div>
+    <footer class="small">Local demo — data saved to browser <strong>localStorage</strong>.</footer>
+  </div>
+</div>
+
+<script>
+/* Storage keys */
+const KEY_USERS = "sgpm_users";
+const KEY_REQUESTS = "sgpm_teacher_requests";
+const KEY_SUBMISSIONS = "sgpm_submissions";
+const KEY_SESSION = "sgpm_user";
+const ADMIN_ID = "2400030672";
+
+/* Load or init */
+function loadUsers(){ return JSON.parse(localStorage.getItem(KEY_USERS) || "{}"); }
+function saveUsers(u){ localStorage.setItem(KEY_USERS, JSON.stringify(u)); }
+function loadRequests(){ return JSON.parse(localStorage.getItem(KEY_REQUESTS) || "[]"); }
+function saveRequests(r){ localStorage.setItem(KEY_REQUESTS, JSON.stringify(r)); }
+function loadSubmissions(){ return JSON.parse(localStorage.getItem(KEY_SUBMISSIONS) || "[]"); }
+function saveSubmissions(s){ localStorage.setItem(KEY_SUBMISSIONS, JSON.stringify(s)); }
+function saveSession(s){ localStorage.setItem(KEY_SESSION, JSON.stringify(s)); }
+function loadSession(){ return JSON.parse(localStorage.getItem(KEY_SESSION) || "null"); }
+
+/* Elements */
+const loginScreen = document.getElementById("loginScreen");
+const app = document.getElementById("app");
+const whoDisplay = document.getElementById("whoDisplay");
+const roleDisplay = document.getElementById("roleDisplay");
+const leftPanel = document.getElementById("leftPanel");
+const leftPanel2 = document.getElementById("leftPanel2");
+const mainPanel = document.getElementById("mainPanel");
+
+document.getElementById("clearBtn").onclick = () => {
+  if(!confirm("Clear all stored data (users, requests, submissions)?")) return;
+  localStorage.removeItem(KEY_USERS);
+  localStorage.removeItem(KEY_REQUESTS);
+  localStorage.removeItem(KEY_SUBMISSIONS);
+  localStorage.removeItem(KEY_SESSION);
+  location.reload();
+};
+
+/* Login logic */
+document.getElementById("loginBtn").onclick = () => {
+  const name = document.getElementById("username").value.trim();
+  const role = document.getElementById("role").value;
+  const pass = document.getElementById("password").value.trim();
+  if(!name || !role || !pass){ alert("Enter name/role/password"); return; }
+
+  let users = loadUsers();
+  let reqs = loadRequests();
+
+  // Admin special: auto-create admin on first login
+  if(name === ADMIN_ID){
+    if(!users[name]){
+      users[name] = { password: pass, role: "teacher", assigned: [], createdAt: new Date().toISOString() };
+      saveUsers(users);
+    } else {
+      if(users[name].password !== pass){ alert("Wrong password for admin"); return; }
+    }
+    saveSession({ name, role: "teacher" });
+    openApp();
+    return;
+  }
+
+  // If asked to be teacher and user doesn't exist -> create request
+  if(role === "teacher" && !users[name]){
+    // store request with supplied password (so admin can approve)
+    reqs.push({ name, password: pass, requestedAt: new Date().toISOString() });
+    saveRequests(reqs);
+    alert("Teacher creation request saved. Admin will approve.");
+    return;
+  }
+
+  // Existing user
+  if(users[name]){
+    if(users[name].password !== pass){ alert("Wrong password"); return; }
+    if(users[name].role !== role){ alert("Role mismatch (use the role you registered with)"); return; }
+    saveSession({ name, role });
+    openApp();
+    return;
+  }
+
+  // New student creation (first-time)
+  if(!users[name]){
+    users[name] = { password: pass, role, assigned: [], createdAt: new Date().toISOString() };
+    saveUsers(users);
+    saveSession({ name, role });
+    openApp();
+    return;
+  }
+};
+
+/* Logout */
+document.getElementById("logoutBtn").onclick = () => {
+  localStorage.removeItem(KEY_SESSION);
+  location.reload();
+};
+
+/* Open App */
+function openApp(){
+  loginScreen.style.display = "none";
+  app.style.display = "block";
+  const session = loadSession();
+  whoDisplay.textContent = session.name;
+  roleDisplay.textContent = session.role.toUpperCase();
+  renderPortal();
+}
+
+/* Render portal based on role */
+function renderPortal(){
+  const session = loadSession();
+  if(!session) return;
+  if(session.role === "student"){
+    renderStudentPortal(session.name);
+  } else {
+    renderTeacherPortal(session.name);
+  }
+}
+
+/* STUDENT PORTAL */
+function renderStudentPortal(studentName){
+  // Left panel: assigned projects dropdown + quick info
+  const users = loadUsers();
+  const assigned = (users[studentName] && users[studentName].assigned) || [];
+
+  leftPanel.innerHTML = `
+    <h3>Assigned Projects</h3>
+    <label>Select Assigned Project</label>
+    <select id="assignedSelect" class="small-select">
+      <option value="">-- No selection --</option>
+      ${assigned.map(p => <option value="${escapeHtml(p)}">${escapeHtml(p)}</option>).join('')}
+    </select>
+    <p class="small muted">If a teacher assigns a project it appears here.</p>
+  `;
+
+  // Left bottom: student's registration info
+  leftPanel2.innerHTML = `
+    <h3>Your Account</h3>
+    <ul class="simple">
+      <li><strong>Name:</strong> ${escapeHtml(studentName)}</li>
+      <li><strong>Role:</strong> Student</li>
+      <li><strong>Assigned:</strong> ${assigned.length} project(s)</li>
+    </ul>
+  `;
+
+  // Main panel: submission form + list of submissions
+  mainPanel.innerHTML = `
+    <h2>Submit Project (any link accepted)</h2>
+    <label>Title</label>
+    <input id="projTitle" placeholder="Project title (eg: CSI: Team A)" />
+    <label>Project Link (any link/text accepted)</label>
+    <input id="projLink" placeholder="https:// or text link (any)" />
+    <div style="margin-top:8px" class="row">
+      <button id="submitProjBtn" class="btn">Submit</button>
+      <button id="refreshStudent" class="btn ghost">Refresh</button>
+    </div>
+    <div style="margin-top:16px">
+      <h3>Your Submissions</h3>
+      <ul id="studentSubList" class="simple"></ul>
+    </div>
+  `;
+
+  document.getElementById("refreshStudent").onclick = () => renderStudentPortal(studentName);
+
+  document.getElementById("submitProjBtn").onclick = () => {
+    const title = document.getElementById("projTitle").value.trim();
+    const link = document.getElementById("projLink").value.trim();
+    if(!title || !link){ alert("Fill title and link (any link accepted)"); return; }
+    let subs = loadSubmissions();
+    subs.push({ id: cryptoRandomId(), student: studentName, title, link, submittedAt: new Date().toISOString() });
+    saveSubmissions(subs);
+    document.getElementById("projTitle").value = "";
+    document.getElementById("projLink").value = "";
+    renderStudentPortal(studentName);
+  };
+
+  // render student's submissions
+  const subs = loadSubmissions().filter(s => s.student === studentName);
+  const listEl = document.getElementById("studentSubList");
+  if(subs.length === 0){
+    listEl.innerHTML = "<li>No submissions yet</li>";
+  } else {
+    listEl.innerHTML = subs.map(s => `
+      <li>
+        <strong>${escapeHtml(s.title)}</strong> — 
+        <a class="link" href="${escapeAttr(s.link)}" target="_blank" rel="noopener">${escapeHtml(s.link)}</a>
+        <div class="small muted">Submitted: ${new Date(s.submittedAt).toLocaleString()}</div>
+      </li>
+    `).join('');
+  }
+}
+
+/* TEACHER PORTAL */
+function renderTeacherPortal(teacherName){
+  const users = loadUsers();
+  const students = Object.keys(users).filter(k => users[k].role === "student");
+  const submissions = loadSubmissions();
+  const requests = loadRequests();
+  const isAdmin = (teacherName === ADMIN_ID);
+
+  // LEFT: Registered Students dropdown & list
+  leftPanel.innerHTML = `
+    <h3>Registered Students</h3>
+    <label>Select Student</label>
+    <select id="studentSelect" class="small-select">
+      <option value="">-- choose student --</option>
+      ${students.map(s => <option value="${escapeHtml(s)}">${escapeHtml(s)}</option>).join('')}
+    </select>
+    <div style="margin-top:10px">
+      <h4 class="small muted">Quick list</h4>
+      <ul class="simple">${students.length ? students.map(s => <li>${escapeHtml(s)}</li>).join('') : '<li>No students registered</li>'}</ul>
+    </div>
+  `;
+
+  // LEFT2: Approvals (for admin) or teacher info
+  if(isAdmin){
+    leftPanel2.innerHTML = `
+      <h3>Pending Teacher Requests</h3>
+      <ul id="reqList" class="simple">
+        ${requests.length ? requests.map((r,i)=><li>${escapeHtml(r.name)} — requested at ${new Date(r.requestedAt).toLocaleString()} <div style="margin-top:6px"><button data-idx="${i}" class="btn approve">Approve</button> <button data-idx="${i}" class="btn danger reject">Reject</button></div></li>).join('') : '<li>No pending requests</li>'}
+      </ul>
+    `;
+  } else {
+    leftPanel2.innerHTML = `
+      <h3>Your Info</h3>
+      <ul class="simple">
+        <li><strong>Name:</strong> ${escapeHtml(teacherName)}</li>
+        <li><strong>Role:</strong> Teacher</li>
+      </ul>
+    `;
+  }
+
+  // MAIN: assign project + submitted projects
+  mainPanel.innerHTML = `
+    <h2>Assign Project to Student</h2>
+    <label>Pick student</label>
+    <select id="assignStudent" class="small-select">
+      <option value="">-- choose student --</option>
+      ${students.map(s => <option value="${escapeHtml(s)}">${escapeHtml(s)}</option>).join('')}
+    </select>
+    <label>Project Title</label>
+    <input id="assignTitle" placeholder="Project title" />
+    <div style="margin-top:8px" class="row">
+      <button id="assignBtn" class="btn">Assign</button>
+      <button id="refreshTeacher" class="btn ghost">Refresh</button>
+    </div>
+
+    <div style="margin-top:16px">
+      <h3>Submitted Projects (all)</h3>
+      <ul id="allSubList" class="simple">
+        ${submissions.length ? submissions.map(s => <li><strong>${escapeHtml(s.title)}</strong> by <em>${escapeHtml(s.student)}</em> — <a class="link" href="${escapeAttr(s.link)}" target="_blank" rel="noopener">Open Link</a><div class="small muted">Submitted: ${new Date(s.submittedAt).toLocaleString()}</div></li>).join('') : '<li>No submissions yet</li>'}
+      </ul>
+    </div>
+  `;
+
+  // bind buttons
+  document.getElementById("assignBtn").onclick = () => {
+    const student = document.getElementById("assignStudent").value;
+    const title = document.getElementById("assignTitle").value.trim();
+    if(!student || !title){ alert("Select student and enter title"); return; }
+    const users = loadUsers();
+    if(!users[student]){ alert("Student not found"); return; }
+    users[student].assigned = users[student].assigned || [];
+    users[student].assigned.push(title);
+    saveUsers(users);
+    alert("Assigned project to " + student);
+    renderTeacherPortal(teacherName);
+  };
+
+  document.getElementById("refreshTeacher").onclick = () => renderTeacherPortal(teacherName);
+
+  // admin approve/reject handlers
+  if(isAdmin){
+    document.querySelectorAll("#reqList .approve").forEach(btn=>{
+      btn.onclick = (e) => {
+        const idx = Number(btn.getAttribute("data-idx"));
+        const reqs = loadRequests();
+        const req = reqs[idx];
+        if(!req) return;
+        const users = loadUsers();
+        users[req.name] = { password: req.password, role: "teacher", assigned: [], createdAt: new Date().toISOString() };
+        saveUsers(users);
+        reqs.splice(idx,1);
+        saveRequests(reqs);
+        alert("Approved teacher: " + req.name);
+        renderTeacherPortal(teacherName);
+      };
+    });
+    document.querySelectorAll("#reqList .reject").forEach(btn=>{
+      btn.onclick = (e) => {
+        const idx = Number(btn.getAttribute("data-idx"));
+        const reqs = loadRequests();
+        if(!reqs[idx]) return;
+        if(!confirm("Reject teacher request for " + reqs[idx].name + " ?")) return;
+        reqs.splice(idx,1);
+        saveRequests(reqs);
+        renderTeacherPortal(teacherName);
+      };
+    });
+  }
+}
+
+/* UTILITIES */
+function escapeHtml(s){
+  if(!s) return "";
+  return String(s).replace(/[&<>"']/g, (m)=>{
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]);
+  });
+}
+function escapeAttr(s){
+  // simple escaping for href; do NOT blindly trust user input in production
+  return encodeURI(String(s));
+}
+function cryptoRandomId(){
+  return 'id-' + Math.random().toString(36).slice(2,10);
+}
+
+/* Auto-open if already logged-in */
+(function init(){
+  const sess = loadSession();
+  if(sess){ openApp(); }
+})();
+</script>
+</body>
+</html>
